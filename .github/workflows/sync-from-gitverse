@@ -12,7 +12,7 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     env:
-      SOURCE_REPO_URL: ${{ secrets.SOURCE_REPO_URL }}
+      SOURCE_REPO_URL: ${{ secrets.WHITEPRIME_XRCHK }}
 
     steps:
       - name: Checkout current GitHub repository
