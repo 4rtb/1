@@ -60,7 +60,7 @@ jobs:
 
           rsync -a --delete \
             --exclude='.git' \
-            --exclude='.github/workflows/sync-from-gitverse.yml' \
+            --exclude='.github/workflows/' \
             --exclude='_source' \
             _source/ ./
 
