@@ -53,24 +53,16 @@ jobs:
           rm -rf _source
           git clone --depth 1 "$REPO_URL" _source
 
-      - name: Sync files
+      - name: Sync files safely
         shell: bash
         run: |
           set -euo pipefail
 
-          shopt -s dotglob nullglob
-
-          # удаляем всё в текущей репе, кроме .git и .github/workflows
-          find . -mindepth 1 -maxdepth 1 \
-            ! -name ".git" \
-            ! -name ".github" \
-            ! -name "_source" \
-            -exec rm -rf {} +
-
-          mkdir -p .github/workflows
-
-          # копируем всё из source, кроме его .git
-          rsync -a --delete --exclude='.git' _source/ ./
+          rsync -a --delete \
+            --exclude='.git' \
+            --exclude='.github/workflows/sync-from-gitverse.yml' \
+            --exclude='_source' \
+            _source/ ./
 
       - name: Commit and push changes
         shell: bash
