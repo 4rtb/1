@@ -80,3 +80,9 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "chore(sync): update from GitVerse source repository"
           git push
+
+      - name: Cleanup temporary source repo
+        if: always()
+        shell: bash
+        run: |
+          rm -rf _source
