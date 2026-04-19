@@ -1,0 +1,90 @@
+name: Sync from GitVerse repository
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/10 * * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      SOURCE_REPO_URL: ${{ secrets.SOURCE_REPO_URL }}
+
+    steps:
+      - name: Checkout current GitHub repository
+        uses: actions/checkout@v4
+
+      - name: Validate source repository URL
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          source_url="${SOURCE_REPO_URL:-}"
+
+          if [ -z "$source_url" ]; then
+            echo "SOURCE_REPO_URL is empty"
+            exit 1
+          fi
+
+          source_url="${source_url%/}"
+
+          if ! [[ "$source_url" =~ ^https?:// ]]; then
+            echo "SOURCE_REPO_URL must start with http:// or https://"
+            exit 1
+          fi
+
+          if [[ "$source_url" != *.git ]]; then
+            source_url="${source_url}.git"
+          fi
+
+          echo "url=$source_url" >> "$GITHUB_OUTPUT"
+
+      - name: Clone source repository
+        shell: bash
+        env:
+          REPO_URL: ${{ steps.source.outputs.url }}
+        run: |
+          set -euo pipefail
+          rm -rf _source
+          git clone --depth 1 "$REPO_URL" _source
+
+      - name: Sync files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          shopt -s dotglob nullglob
+
+          # удаляем всё в текущей репе, кроме .git и .github/workflows
+          find . -mindepth 1 -maxdepth 1 \
+            ! -name ".git" \
+            ! -name ".github" \
+            ! -name "_source" \
+            -exec rm -rf {} +
+
+          mkdir -p .github/workflows
+
+          # копируем всё из source, кроме его .git
+          rsync -a --delete --exclude='.git' _source/ ./
+
+      - name: Commit and push changes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "No changes detected"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(sync): update from GitVerse source repository"
+          git push
